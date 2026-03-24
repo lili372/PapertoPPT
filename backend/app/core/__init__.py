@@ -1,0 +1,22 @@
+"""Core模块"""
+from .config import (
+    BASE_DIR,
+    TEMP_DIR,
+    MAX_FILE_SIZE,
+    ALLOWED_EXTENSIONS,
+    MINIMAX_API_KEY,
+    MINIMAX_MODEL,
+    LLM_TEMPERATURE,
+    LLM_MAX_TOKENS
+)
+
+__all__ = [
+    "BASE_DIR",
+    "TEMP_DIR",
+    "MAX_FILE_SIZE",
+    "ALLOWED_EXTENSIONS",
+    "MINIMAX_API_KEY",
+    "MINIMAX_MODEL",
+    "LLM_TEMPERATURE",
+    "LLM_MAX_TOKENS"
+]
