@@ -73,9 +73,6 @@ PapertoPPT/
 │       ├── stores/
 │       │   └── useAppStore.ts        # Zustand 状态管理
 │       └── App.tsx
-├── .claude/                      # Claude Code 配置
-├── plan_0.1.md                   # v0.1 设计文档
-├── plan_0.2.md                   # v0.2 设计文档
 └── README.md
 ```
 
