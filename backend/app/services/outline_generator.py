@@ -136,3 +136,63 @@ def generate_outline_simple(title: str, authors: List[str], content: str) -> str
     outline = llm.generate(prompt=user_prompt, system=SYSTEM_PROMPT)
 
     return outline
+
+
+def regenerate_slide(outline: str, slide_index: int, instruction: str) -> str:
+    """
+    重写大纲中的单个幻灯片
+
+    Args:
+        outline: 完整的Markdown大纲
+        slide_index: 要重写的幻灯片索引（从0开始）
+        instruction: 用户指令，如"更简洁"、"更强调实验数据"
+
+    Returns:
+        重写后的单个幻灯片内容（Markdown格式）
+    """
+    import re
+
+    # 按 --- 分割幻灯片
+    slide_texts = re.split(r'\n---\n', outline)
+    slides = [s.strip() for s in slide_texts if s.strip()]
+
+    if slide_index < 0 or slide_index >= len(slides):
+        raise ValueError(f"幻灯片索引无效: {slide_index}")
+
+    # 获取当前幻灯片内容
+    current_slide = slides[slide_index]
+
+    # 系统提示词
+    system_prompt = """你是一个专业的学术PPT内容优化助手。你的任务是根据用户的指令优化指定幻灯片的内容。
+
+要求：
+1. 只输出该幻灯片的内容（标题和要点），不要输出其他内容
+2. 保持Markdown格式
+3. **要点格式必须完整保留**：如果原要点是 "- **标题**: 描述内容"，重写后也必须是 "- **标题**: 描述内容"，不能只保留标题
+4. "更简洁"是指语言更精炼，但不能删除任何实质性内容
+5. 符合学术演讲风格
+
+输出格式示例：
+# Slide 1: 标题
+- **标题**: 描述内容（必须保留）
+- **另一个标题**: 另一个描述内容（必须保留）
+
+## Notes
+演讲备注内容"""
+
+    # 构建用户提示词
+    user_prompt = f"""请根据以下指令重写这张幻灯片：
+
+【用户指令】
+{instruction}
+
+【当前幻灯片内容】
+{current_slide}
+
+请严格按照指令重写这张幻灯片的内容，保持Markdown格式。"""
+
+    # 调用LLM生成
+    llm = get_llm_client()
+    new_slide_content = llm.generate(prompt=user_prompt, system=system_prompt)
+
+    return new_slide_content

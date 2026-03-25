@@ -50,4 +50,12 @@ tmp/
 # 其他
 .DS_Store
 Thumbs.db
-plan.md
+plan_0.1.md
+plan_0.2.md
+
+# Claude Code 本地配置
+.claude/
+
+# 崩溃日志
+bash.exe.stackdump
+frontend/bash.exe.stackdump
