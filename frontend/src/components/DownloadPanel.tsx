@@ -1,7 +1,7 @@
 import { useAppStore } from '../stores/useAppStore'
 
 export function DownloadPanel() {
-  const { downloadPPT, reset, paperInfo, file } = useAppStore()
+  const { downloadPPT, reset, paperInfo, file, slideCount } = useAppStore()
 
   return (
     <div className="max-w-xl mx-auto">
@@ -47,7 +47,7 @@ export function DownloadPanel() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
             </svg>
-            <span>约 {paperInfo?.pages ? Math.max(5, Math.ceil(paperInfo.pages / 3)) : 8} 张幻灯片</span>
+            <span>{slideCount ? `${slideCount} 张幻灯片` : `约 ${paperInfo?.pages ? Math.max(5, Math.ceil(paperInfo.pages / 3)) : 8} 张幻灯片`}</span>
           </div>
         </div>
 

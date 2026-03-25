@@ -21,6 +21,7 @@ class StatusResponse(BaseModel):
     progress: int  # 0-100
     paper_info: Optional[PaperInfo] = None
     error: Optional[str] = None
+    slide_count: Optional[int] = None  # PPT幻灯片数量
 
 
 class PreviewResponse(BaseModel):

@@ -33,6 +33,7 @@ class Task:
         self.progress = 0
         self.pdf_path = pdf_path
         self.outline: Optional[str] = None
+        self.outline_status: str = "pending"  # pending | editing | ready
         self.ppt_path: Optional[str] = None
         self.error: Optional[str] = None
         self.paper_info: Optional[dict] = None
@@ -80,11 +81,18 @@ async def get_status(task_id: str):
 
     task = _tasks[task_id]
 
+    # 计算幻灯片数量
+    slide_count = None
+    if task.outline:
+        from ..services.ppt_generator import get_slide_count
+        slide_count = get_slide_count(task.outline)
+
     return StatusResponse(
         status=task.status,
         progress=task.progress,
         paper_info=PaperInfo(**task.paper_info) if task.paper_info else None,
-        error=task.error
+        error=task.error,
+        slide_count=slide_count
     )
 
 
@@ -103,6 +111,65 @@ async def get_preview(task_id: str):
         raise HTTPException(status_code=404, detail="大纲不存在")
 
     return PreviewResponse(outline=task.outline)
+
+
+@router.get("/outline/{task_id}")
+async def get_outline(task_id: str):
+    """获取大纲（用于编辑）"""
+    if task_id not in _tasks:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    task = _tasks[task_id]
+
+    if not task.outline:
+        raise HTTPException(status_code=404, detail="大纲不存在")
+
+    from ..services.ppt_generator import get_slide_count
+    slide_count = get_slide_count(task.outline)
+
+    return {
+        "outline": task.outline,
+        "slide_count": slide_count,
+        "outline_status": task.outline_status
+    }
+
+
+@router.put("/outline/{task_id}")
+async def save_outline(task_id: str, request: dict):
+    """保存编辑后的大纲"""
+    if task_id not in _tasks:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    task = _tasks[task_id]
+    task.outline = request.get("outline")
+    task.outline_status = "editing"
+
+    return {"success": True}
+
+
+@router.post("/outline/{task_id}/regenerate/{slide_index}")
+async def regenerate_slide(task_id: str, slide_index: int, request: dict):
+    """AI重写指定幻灯片"""
+    if task_id not in _tasks:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    task = _tasks[task_id]
+
+    if not task.outline:
+        raise HTTPException(status_code=400, detail="大纲不存在")
+
+    instruction = request.get("instruction", "")
+    if not instruction:
+        raise HTTPException(status_code=400, detail="指令不能为空")
+
+    try:
+        from ..services.outline_generator import regenerate_slide as gen_slide
+        new_slide_content = gen_slide(task.outline, slide_index, instruction)
+        return {"slide_content": new_slide_content}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"重写失败: {str(e)}")
 
 
 @router.get("/download/{task_id}")
@@ -171,9 +238,11 @@ async def process_pdf(task_id: str):
             "pages": extracted.total_pages
         }
 
-        # 第二步：调用LLM生成大纲
+        # 第二步：调用LLM生成大纲（仅在无大纲时）
         task.progress = 40
-        task.outline = generate_outline(extracted)
+        if not task.outline:
+            task.outline = generate_outline(extracted)
+            task.outline_status = "ready"  # 大纲已生成，可以编辑
 
         # 第三步：生成PPT
         task.progress = 80
@@ -195,3 +264,38 @@ async def process_pdf(task_id: str):
         task.status = "failed"
         task.error = str(e)
         raise HTTPException(status_code=500, detail=f"处理失败: {str(e)}")
+
+
+@router.post("/generate-ppt/{task_id}")
+async def generate_ppt_only(task_id: str):
+    """
+    仅生成PPT（使用已有大纲）
+    在大纲编辑确认后调用，跳过大纲生成步骤
+    """
+    if task_id not in _tasks:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    task = _tasks[task_id]
+
+    if not task.outline:
+        raise HTTPException(status_code=400, detail="大纲不存在，请先处理PDF")
+
+    task.status = "processing"
+
+    try:
+        # 直接生成PPT
+        task.progress = 50
+        ppt_path = str(TEMP_DIR / f"{task_id}.pptx")
+        markdown_to_ppt(task.outline, ppt_path)
+        task.ppt_path = ppt_path
+
+        # 完成
+        task.status = "completed"
+        task.progress = 100
+
+        return {"status": "completed", "task_id": task_id}
+
+    except Exception as e:
+        task.status = "failed"
+        task.error = str(e)
+        raise HTTPException(status_code=500, detail=f"生成PPT失败: {str(e)}")

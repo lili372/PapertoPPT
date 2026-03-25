@@ -2,9 +2,10 @@ import { useAppStore } from './stores/useAppStore'
 import { UploadPanel } from './components/UploadPanel'
 import { ProcessingPanel } from './components/ProcessingPanel'
 import { DownloadPanel } from './components/DownloadPanel'
+import { OutlineEditor } from './components/OutlineEditor'
 
 function App() {
-  const { viewState, error, reset } = useAppStore()
+  const { viewState, error, reset, taskId, outline, confirmGenerate } = useAppStore()
 
   return (
     <div className="min-h-screen paper-texture grid-pattern">
@@ -27,7 +28,7 @@ function App() {
           {/* 标签 */}
           <div className="hidden sm:flex items-center gap-2">
             <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">
-              v0.1
+              v0.2
             </span>
           </div>
         </div>
@@ -58,6 +59,12 @@ function App() {
           <UploadPanel />
         ) : viewState === 'processing' ? (
           <ProcessingPanel />
+        ) : viewState === 'outline_editing' ? (
+          <OutlineEditor
+            taskId={taskId!}
+            outline={outline!}
+            onConfirmGenerate={confirmGenerate}
+          />
         ) : viewState === 'completed' ? (
           <DownloadPanel />
         ) : null}
